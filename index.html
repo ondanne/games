@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구식 탁구 게임 (점수별 속도 증가)</title>
+    <title>구식 탁구 게임 (왼쪽 패들 수정)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: black; text-align: center; color: white; font-family: Arial, sans-serif; }
@@ -11,7 +11,7 @@
     </style>
 </head>
 <body>
-    <h1>🏓 장애물 탁구 게임 (속도 증가)</h1>
+    <h1>🏓 장애물 탁구 게임 (왼쪽 패들 수정)</h1>
     <p>플레이어1: W, S | 플레이어2: ↑, ↓</p>
     <canvas id="pongCanvas" width="800" height="400"></canvas>
     <script>
@@ -30,11 +30,20 @@
         ];
 
         let leftScore = 0, rightScore = 0;
-        let keys = {};
+        let keys = { "w": false, "s": false, "ArrowUp": false, "ArrowDown": false };
         let gameOver = false;
 
-        document.addEventListener("keydown", (e) => keys[e.key] = true);
-        document.addEventListener("keyup", (e) => keys[e.key] = false);
+        document.addEventListener("keydown", (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+            }
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        });
 
         function drawRect(x, y, width, height, color) {
             ctx.fillStyle = color;
@@ -79,6 +88,35 @@
             if (keys["ArrowDown"] && rightPaddle.y < canvas.height - paddleHeight) rightPaddle.y += rightPaddle.speed;
         }
 
+        function checkObstacleCollision() {
+            obstacles.forEach((obstacle, index) => {
+                let hit = false;
+
+                if (obstacle.shape === "rect") {
+                    hit = ball.x + ball.size >= obstacle.x &&
+                          ball.x <= obstacle.x + obstacle.width &&
+                          ball.y + ball.size >= obstacle.y &&
+                          ball.y <= obstacle.y + obstacle.height;
+                } else if (obstacle.shape === "circle") {
+                    let dx = ball.x - obstacle.x;
+                    let dy = ball.y - obstacle.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    hit = distance < ball.size + obstacle.radius;
+                }
+
+                if (hit) {
+                    ball.dx *= -1;
+                    ball.dy *= -1; 
+                    obstacle.hitCount++;
+                    obstacle.alpha -= 0.1;
+
+                    if (obstacle.hitCount >= 10) {
+                        obstacles.splice(index, 1);
+                    }
+                }
+            });
+        }
+
         function updateBall() {
             ball.x += ball.dx * ball.speedMultiplier;
             ball.y += ball.dy * ball.speedMultiplier;
@@ -100,17 +138,6 @@
             }
         }
 
-        function increaseSpeed() {
-            ball.speedMultiplier += 0.1; // 점수가 올라갈수록 공 속도 증가
-        }
-
-        function resetBall() {
-            ball.x = canvas.width / 2;
-            ball.y = canvas.height / 2;
-            ball.dx = (Math.random() > 0.5 ? 4 : -4);
-            ball.dy = (Math.random() > 0.5 ? 4 : -4);
-        }
-
         function gameLoop() {
             if (gameOver) {
                 ctx.fillStyle = "red";
@@ -129,6 +156,7 @@
             updateBall();
             moveObstacles();
             obstacles.forEach(drawObstacle);
+            checkObstacleCollision();
             requestAnimationFrame(gameLoop);
         }
 
