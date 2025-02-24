@@ -65,7 +65,7 @@
             ctx.globalAlpha = 1;
         }
 
-        function moveObstacles() {
+        function moveObstacles() {    
             obstacles.forEach(obstacle => {
                 obstacle.y += obstacle.dy;
                 if (obstacle.y <= 0 || obstacle.y + (obstacle.height || obstacle.radius * 2) >= canvas.height) {
