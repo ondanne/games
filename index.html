@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구식 탁구 게임 (장애물 포함)</title>
+    <title>구식 탁구 게임 (여러 개의 장애물 추가)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: black; text-align: center; color: white; font-family: Arial, sans-serif; }
@@ -23,7 +23,12 @@
         let rightPaddle = { x: canvas.width - 20, y: 160, speed: 5 };
         let ball = { x: canvas.width / 2, y: canvas.height / 2, dx: 4, dy: 4, size: 10 };
 
-        let obstacle = { x: canvas.width / 2 - 20, y: 100, width: 40, height: 60, dy: 3 };
+        let obstacles = [
+            { x: 300, y: 100, width: 50, height: 50, alpha: 1, hitCount: 0 },
+            { x: 450, y: 200, width: 50, height: 50, alpha: 1, hitCount: 0 },
+            { x: 350, y: 250, width: 50, height: 50, alpha: 1, hitCount: 0 }
+        ];
+
         let leftScore = 0, rightScore = 0;
         let keys = {};
         let gameOver = false;
@@ -31,9 +36,11 @@
         document.addEventListener("keydown", (e) => keys[e.key] = true);
         document.addEventListener("keyup", (e) => keys[e.key] = false);
 
-        function drawRect(x, y, width, height, color) {
+        function drawRect(x, y, width, height, color, alpha = 1) {
+            ctx.globalAlpha = alpha;
             ctx.fillStyle = color;
             ctx.fillRect(x, y, width, height);
+            ctx.globalAlpha = 1; // 투명도 원상복구
         }
 
         function drawBall() {
@@ -85,22 +92,23 @@
             ctx.fillText(rightScore, (canvas.width / 4) * 3, 30);
         }
 
-        function moveObstacle() {
-            obstacle.y += obstacle.dy;
-            if (obstacle.y <= 0 || obstacle.y + obstacle.height >= canvas.height) {
-                obstacle.dy *= -1;
-            }
-        }
-
         function checkObstacleCollision() {
-            if (
-                ball.x + ball.size >= obstacle.x &&
-                ball.x <= obstacle.x + obstacle.width &&
-                ball.y + ball.size >= obstacle.y &&
-                ball.y <= obstacle.y + obstacle.height
-            ) {
-                ball.dx *= -1;
-            }
+            obstacles.forEach((obstacle, index) => {
+                if (
+                    ball.x + ball.size >= obstacle.x &&
+                    ball.x <= obstacle.x + obstacle.width &&
+                    ball.y + ball.size >= obstacle.y &&
+                    ball.y <= obstacle.y + obstacle.height
+                ) {
+                    ball.dx *= -1;
+                    obstacle.hitCount++;
+                    obstacle.alpha -= 0.2; 
+
+                    if (obstacle.hitCount >= 5) {
+                        obstacles.splice(index, 1);
+                    }
+                }
+            });
         }
 
         function gameLoop() {
@@ -115,11 +123,14 @@
             drawRect(0, 0, canvas.width, canvas.height, "darkgreen");
             drawRect(leftPaddle.x, leftPaddle.y, paddleWidth, paddleHeight, "white");
             drawRect(rightPaddle.x, rightPaddle.y, paddleWidth, paddleHeight, "white");
-            drawRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, "gray");
+
+            obstacles.forEach(obstacle => {
+                drawRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, "gray", obstacle.alpha);
+            });
+
             drawBall();
             drawScore();
             movePaddles();
-            moveObstacle();
             checkObstacleCollision();
             updateBall();
             requestAnimationFrame(gameLoop);
