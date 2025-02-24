@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구식 탁구 게임 (왼쪽 패들 수정)</title>
+    <title>구식 탁구 게임 (버그 수정)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: black; text-align: center; color: white; font-family: Arial, sans-serif; }
@@ -11,7 +11,7 @@
     </style>
 </head>
 <body>
-    <h1>🏓 장애물 탁구 게임 (왼쪽 패들 수정)</h1>
+    <h1>🏓 장애물 탁구 게임 (최종 수정)</h1>
     <p>플레이어1: W, S | 플레이어2: ↑, ↓</p>
     <canvas id="pongCanvas" width="800" height="400"></canvas>
     <script>
@@ -106,7 +106,7 @@
 
                 if (hit) {
                     ball.dx *= -1;
-                    ball.dy *= -1; 
+                    ball.dy *= -1;
                     obstacle.hitCount++;
                     obstacle.alpha -= 0.1;
 
@@ -130,12 +130,19 @@
                 ball.dx *= -1;
             }
 
-            if (ball.x <= 0) { rightScore++; increaseSpeed(); resetBall(); }
-            if (ball.x >= canvas.width) { leftScore++; increaseSpeed(); resetBall(); }
+            if (ball.x <= 0) { rightScore++; resetBall(); } // ✅ 공이 끝에 닿으면 다시 시작
+            if (ball.x >= canvas.width) { leftScore++; resetBall(); } // ✅ 점수 증가 정상 작동
 
             if (leftScore === 10 || rightScore === 10) {
                 gameOver = true;
             }
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = (Math.random() > 0.5 ? 4 : -4);
+            ball.dy = (Math.random() > 0.5 ? 4 : -4);
         }
 
         function gameLoop() {
