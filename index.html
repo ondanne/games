@@ -8,9 +8,16 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: black; text-align: center; color: white; font-family: Arial, sans-serif; }
         canvas { display: block; margin: 20px auto; background: darkgreen; }
+        #gameTitle {  /* 🎯 제목 스타일 */
+            color: white;
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+    <h2 id="gameTitle">다니와 오니가 만든 게임</h2>  <!-- 🎯 게임 제목 추가 -->
     <h1>🏓 장애물 탁구 게임 (최종 수정)</h1>
     <p>플레이어1: W, S | 플레이어2: ↑, ↓</p>
     <canvas id="pongCanvas" width="800" height="400"></canvas>
