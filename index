@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구식 탁구 게임 (버그 수정)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: black; text-align: center; color: white; font-family: Arial, sans-serif; }
+        canvas { display: block; margin: 20px auto; background: darkgreen; }
+        #gameTitle {  /* 🎯 제목 스타일 */
+            color: white;
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2 id="gameTitle">다니와 오니가 만든 게임</h2>  <!-- 🎯 게임 제목 추가 -->
+    <h1>🏓 장애물 탁구 게임 (최종 수정)</h1>
+    <p>플레이어1: W, S | 플레이어2: ↑, ↓</p>
+    <canvas id="pongCanvas" width="800" height="400"></canvas>
+    <script>
+        const canvas = document.getElementById("pongCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const paddleWidth = 10, paddleHeight = 80;
+        let leftPaddle = { x: 10, y: 160, speed: 5 };
+        let rightPaddle = { x: canvas.width - 20, y: 160, speed: 5 };
+        let ball = { x: canvas.width / 2, y: canvas.height / 2, dx: 4, dy: 4, size: 10, speedMultiplier: 1 };
+
+        let obstacles = [
+            { x: 300, y: 100, width: 50, height: 50, alpha: 1, hitCount: 0, dy: 2, shape: "rect" },
+            { x: 450, y: 200, radius: 25, alpha: 1, hitCount: 0, dy: -2, shape: "circle" },
+            { x: 350, y: 250, width: 60, height: 40, alpha: 1, hitCount: 0, dy: 1.5, shape: "rect" }
+        ];
+
+        let leftScore = 0, rightScore = 0;
+        let keys = { "w": false, "s": false, "ArrowUp": false, "ArrowDown": false };
+        let gameOver = false;
+
+        document.addEventListener("keydown", (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+            }
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        });
+
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        function drawObstacle(obstacle) {
+            ctx.globalAlpha = obstacle.alpha;
+            ctx.fillStyle = "gray";
+
+            if (obstacle.shape === "rect") {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            } else if (obstacle.shape === "circle") {
+                ctx.beginPath();
+                ctx.arc(obstacle.x, obstacle.y, obstacle.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.globalAlpha = 1;
+        }
+
+        function moveObstacles() {    
+            obstacles.forEach(obstacle => {
+                obstacle.y += obstacle.dy;
+                if (obstacle.y <= 0 || obstacle.y + (obstacle.height || obstacle.radius * 2) >= canvas.height) {
+                    obstacle.dy *= -1;
+                }
+            });
+        }
+
+        function drawBall() {
+            ctx.fillStyle = "white";
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function movePaddles() {
+            if (keys["w"] && leftPaddle.y > 0) leftPaddle.y -= leftPaddle.speed;
+            if (keys["s"] && leftPaddle.y < canvas.height - paddleHeight) leftPaddle.y += leftPaddle.speed;
+            if (keys["ArrowUp"] && rightPaddle.y > 0) rightPaddle.y -= rightPaddle.speed;
+            if (keys["ArrowDown"] && rightPaddle.y < canvas.height - paddleHeight) rightPaddle.y += rightPaddle.speed;
+        }
+
+        function checkObstacleCollision() {
+            obstacles.forEach((obstacle, index) => {
+                let hit = false;
+
+                if (obstacle.shape === "rect") {
+                    hit = ball.x + ball.size >= obstacle.x &&
+                          ball.x <= obstacle.x + obstacle.width &&
+                          ball.y + ball.size >= obstacle.y &&
+                          ball.y <= obstacle.y + obstacle.height;
+                } else if (obstacle.shape === "circle") {
+                    let dx = ball.x - obstacle.x;
+                    let dy = ball.y - obstacle.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    hit = distance < ball.size + obstacle.radius;
+                }
+
+                if (hit) {
+                    ball.dx *= -1;
+                    ball.dy *= -1;
+                    obstacle.hitCount++;
+                    obstacle.alpha -= 0.1;
+
+                    if (obstacle.hitCount >= 10) {
+                        obstacles.splice(index, 1);
+                    }
+                }
+            });
+        }
+
+        function updateBall() {
+            ball.x += ball.dx * ball.speedMultiplier;
+            ball.y += ball.dy * ball.speedMultiplier;
+
+            if (ball.y <= 0 || ball.y >= canvas.height) ball.dy *= -1;
+
+            if (
+                (ball.x <= leftPaddle.x + paddleWidth && ball.y >= leftPaddle.y && ball.y <= leftPaddle.y + paddleHeight) ||
+                (ball.x >= rightPaddle.x - ball.size && ball.y >= rightPaddle.y && ball.y <= rightPaddle.y + paddleHeight)
+            ) {
+                ball.dx *= -1;
+            }
+
+            if (ball.x <= 0) { rightScore++; resetBall(); } // ✅ 공이 끝에 닿으면 다시 시작
+            if (ball.x >= canvas.width) { leftScore++; resetBall(); } // ✅ 점수 증가 정상 작동
+
+            if (leftScore === 10 || rightScore === 10) {
+                gameOver = true;
+            }
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = (Math.random() > 0.5 ? 4 : -4);
+            ball.dy = (Math.random() > 0.5 ? 4 : -4);
+        }
+
+        function gameLoop() {
+            if (gameOver) {
+                ctx.fillStyle = "red";
+                ctx.font = "40px Arial";
+                ctx.fillText("🎉 게임 종료!", canvas.width / 2 - 100, canvas.height / 2);
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawRect(leftPaddle.x, leftPaddle.y, paddleWidth, paddleHeight, "white");
+            drawRect(rightPaddle.x, rightPaddle.y, paddleWidth, paddleHeight, "white");
+
+            drawBall();
+            movePaddles();
+            updateBall();
+            moveObstacles();
+            obstacles.forEach(drawObstacle);
+            checkObstacleCollision();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
